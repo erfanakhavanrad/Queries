@@ -182,3 +182,13 @@ YEAR(OrderDate)
 GO
 
 
+ -- Count of all employee orders except the ones from employee number 9
+
+ SELECT
+	o.EmployeeID,
+	COUNT(o.OrderID) AS Num
+ FROM dbo.Orders AS o
+WHERE o.EmployeeID <> 9
+ GROUP BY o.EmployeeID;
+ GO
+
