@@ -192,3 +192,95 @@ WHERE o.EmployeeID <> 9
  GROUP BY o.EmployeeID;
  GO
 
+ /*
+
+ HERE
+
+ */
+
+ -- 5 customers with most orders 
+
+ SELECT TOP (5) With TIES
+	o.CustomerID,
+	COUNT(o.OrderID) AS ordersNum
+ FROM dbo.Orders AS o
+  GROUP BY o.CustomerID
+  order by ordersNum DESC
+GO
+	
+
+-- A field can be used in WHERE but be absent in SELECT
+SELECT
+	EmployeeID,
+	COUNT(OrderID) AS Num
+FROM dbo.Orders
+	WHERE CustomerID < 50
+GROUP BY EmployeeID;
+Go
+
+-- A field can be used in HAVING but be absent in SELECT
+
+SELECT
+	EmployeeID,
+	CustomerID
+FROM dbo.Orders
+GROUP BY EmployeeID, CustomerID
+	HAVING COUNT(OrderID) > 5;
+GO
+
+-- A field can have 2 roles simultaneously
+
+SELECT
+	c.City,
+	COUNT(c.City) AS Num
+FROM dbo.Customers AS c
+GROUP BY c.City;
+GO
+
+SELECT
+	COUNT(City) AS CityName
+FROM dbo.Customers
+	WHERE City IN (N'تهران', N'اصفهان')
+GO
+
+
+SELECT
+	customerID,
+	COUNT(City) AS CityName
+FROM dbo.Customers
+	WHERE City IN (N'تهران', N'اصفهان')
+GROUP BY customerID
+GO
+
+
+SELECT
+	c.CustomerID
+FROM dbo.Customers AS c
+GROUP BY c.CustomerID
+	HAVING COUNT(c.State) > 0;
+GO
+SELECT * FROM customers
+ORDER BY STATE
+
+ -- Show the fileds filtered in WHERE
+
+SELECT
+	EmployeeID,
+	COUNT(OrderID) AS Num
+ FROM dbo.orders
+	WHERE EmployeeID BETWEEN 1 AND 3
+GROUP BY ALL EmployeeID
+ORDER BY EmployeeID;
+GO
+
+
+SELECT
+	EmployeeID,
+	COUNT(OrderID) AS Num
+ FROM dbo.orders
+	WHERE EmployeeID BETWEEN 1 AND 3
+GROUP BY ALL EmployeeID
+	HAVING COUNT(OrderID) > 100
+ORDER BY EmployeeID;
+GO
+
