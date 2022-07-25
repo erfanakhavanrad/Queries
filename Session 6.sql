@@ -1,5 +1,5 @@
 ﻿use SampleDb
-
+use NikamoozDB
 /*
 Session 6
 */
@@ -90,6 +90,9 @@ INNER JOIN dbo.Orders AS o
 ORDER BY e.LastName;
 GO
 
+/*
+لیستی شامل فهرست  شهرهایی که بیش از 50 سفارش ثبت کرده اند
+*/
 SELECT 
 	COUNT(o.OrderID) AS Num,
 	c.City
@@ -101,6 +104,8 @@ GROUP BY c.City
 GO
 
 
+/*
+از کدام شهر کمترین سفارش را داشته ایم؟*/
 SELECT 
 	TOP (1) WITH TIES COUNT(o.OrderID) AS Num,
 	c.City
@@ -110,3 +115,86 @@ INNER JOIN dbo.Orders AS o
 GROUP BY c.City
 ORDER BY Num
 GO
+
+
+
+/*
+سه محصولی که بیشترین فروش را داشته اند.
+*/
+select * from dbo.OrderDetails
+
+-- Wrong
+SELECT
+TOP (3) WITH TIES SUM(o.Qty) AS quantity,
+p.ProductName
+FROM dbo.Products AS p
+INNER JOIN dbo.OrderDetails AS o
+	ON p.ProductID = o.ProductID
+GROUP BY  p.ProductID, p.ProductName
+ORDER BY quantity DESC;
+GO
+
+-- Correct
+SELECT
+TOP (3) WITH TIES SUM(o.Qty) AS quantity,
+p.ProductName
+FROM dbo.Products AS p
+INNER JOIN dbo.OrderDetails AS o
+	ON p.ProductID = o.ProductID
+GROUP BY  p.ProductName
+ORDER BY quantity DESC;
+GO
+
+
+-- Composite Join
+DROP TABLE IF EXISTS composite1, composite2
+
+CREATE TABLE Composite1 
+(
+	ID1 INT,
+	ID2 INT,
+	Family NVARCHAR(50)
+);
+GO
+
+
+CREATE TABLE Composite2
+(
+	ID1 INT,
+	ID2 INT,
+	Serial INT IDENTITY,
+	CheckedDate CHAR(10) DEFAULT GETDATE()
+);
+GO
+
+INSERT INTO Composite1
+VALUES
+	(1,10, N'Ahmadi'), (1,20, N'Saadat'),
+	(2,10, N'Paydar'), (2,20, N'Rezaei');
+GO
+
+INSERT INTO Composite2 (ID1, ID2)
+VALUES
+	(1,10), (1,10), (1,20), (1,20),
+	(2,10), (1,10), (1,10), (2,10);
+GO
+
+SELECT * FROM Composite1
+SELECT * FROM Composite2
+
+SELECT
+	c1.Family, c2.Serial
+FROM Composite1 AS c1
+JOIN Composite2 AS c2
+	ON C1.ID1 = C2.ID1
+	AND C1.ID2 = C2.ID2;
+GO
+
+SELECT
+	c1.Family, c2.Serial
+FROM Composite1 AS c1
+JOIN Composite2 AS c2
+	ON C1.ID1 = C2.ID1
+GO
+
+-- 28Min 6.1.2
