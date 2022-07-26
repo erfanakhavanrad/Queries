@@ -197,4 +197,37 @@ JOIN Composite2 AS c2
 	ON C1.ID1 = C2.ID1
 GO
 
--- 28Min 6.1.2
+
+--Equi Join
+SELECT
+	e1.EmployeeID, e1.FirstName, e1.LastName,
+	e2.EmployeeID, e2.FirstName, e2.LastName
+ FROM Employees AS e1
+ JOIN Employees AS e2
+	ON e1.EmployeeID = e2.EmployeeID;
+GO
+
+--Non-Equi Join
+SELECT
+	e1.EmployeeID, e1.FirstName, e1.LastName,
+	e2.EmployeeID, e2.FirstName, e2.LastName
+ FROM Employees AS e1
+ JOIN Employees AS e2
+	ON e1.EmployeeID < e2.EmployeeID
+ORDER BY e1.EmployeeID;
+GO
+
+/* Cross join with inner join removed
+
+تمام ترکیبات دوتایی از نام و نام خانوادگی کارمندان به جز حالت تشابه میان یک کارمند با خودش
+
+*/
+SELECT
+	e1.EmployeeID, e1.FirstName, e1.LastName,
+	e2.EmployeeID, e2.FirstName, e2.LastName
+ FROM Employees AS e1
+ JOIN Employees AS e2
+	ON e1.EmployeeID <> e2.EmployeeID
+ORDER BY e1.EmployeeID;
+GO
+
