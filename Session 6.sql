@@ -231,3 +231,25 @@ SELECT
 ORDER BY e1.EmployeeID;
 GO
 
+-- Mutli Join
+/*
+سفارش هر مشتری به عنوان شرکتش، کد سفارش، کد محصول و تعداد سفارش
+*/
+
+SELECT
+	c.CustomerID, c.CompanyName,
+	o.OrderID, 
+	od.ProductID, od.Qty
+FROM Customers AS c
+JOIN Orders AS o
+	on c.CustomerID = o.CustomerID
+JOIN OrderDetails AS od
+	on o.OrderID = od.OrderID;
+GO
+
+
+/*
+
+تمامی سفارشات درخواست شده به همراه مجموع تمامی کالاهای هر سفارش که مربوط به شرکت هایی باشند که در استان تهران هستند.
+
+*/
