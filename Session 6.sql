@@ -1,4 +1,4 @@
-﻿use SampleDb
+﻿cuse SampleDb
 use NikamoozDB
 /*
 Session 6
@@ -253,3 +253,125 @@ GO
 تمامی سفارشات درخواست شده به همراه مجموع تمامی کالاهای هر سفارش که مربوط به شرکت هایی باشند که در استان تهران هستند.
 
 */
+
+SELECT
+	c.CustomerID, c.CompanyName,
+	o.OrderID, 
+	SUM(od.Qty) AS quantity
+FROM Customers AS c
+JOIN Orders AS o
+	on c.CustomerID = o.CustomerID
+JOIN OrderDetails AS od
+	on o.OrderID = od.OrderID
+	WHERE c.State = N'تهران'
+GROUP BY 	c.CustomerID, c.CompanyName,
+	o.OrderID
+GO
+
+/*
+
+تعداد سفارشات به همراه مجموع کل محصولات سفارش شده شرکت هایی که در تهران هستند
+
+*/
+
+SELECT
+	c.CustomerID, c.CompanyName,
+	SUM(od.Qty) AS quantity,
+	COUNT (DISTINCT o.OrderID) AS numOrders
+FROM Customers AS c
+JOIN Orders AS o
+	on c.CustomerID = o.CustomerID
+JOIN OrderDetails AS od
+	on o.OrderID = od.OrderID
+	WHERE c.State = N'تهران'
+GROUP BY c.CustomerID, c.CompanyName
+GO
+
+-- Outer Join
+ /*
+ تمامی مشتریانی که ثبت سفارش داشته اند
+ */
+ SELECT
+	c.CustomerID, c.CompanyName, o.OrderID
+ FROM Customers AS c
+ JOIN Orders AS o
+	ON c.CustomerID = o.CustomerID
+ORDER BY c.CustomerID;
+GO
+
+
+
+  /*
+ تمامی مشتریانی حتی ان هایی که  که ثبت سفارش نداشته اند
+ */
+SELECT
+	c.CustomerID, c.CompanyName, o.OrderID
+FROM Customers AS c
+LEFT JOIN Orders AS o
+	ON c.CustomerID = o.CustomerID
+ORDER BY c.CustomerID;
+GO
+
+
+
+  /*
+ تمامی مشتریانی  که  که ثبت سفارش نداشته اند
+ */
+SELECT
+	c.CustomerID, c.CompanyName, o.OrderID
+FROM Customers AS c
+LEFT JOIN Orders AS o
+	ON c.CustomerID = o.CustomerID
+WHERE OrderID IS NULL
+ORDER BY c.CustomerID;
+GO
+
+-- Forcing orders
+--USE AdventureWorks
+
+--SELECT * FROM Person.Person AS p
+--JOIN Person.PersonPhone AS pp
+--	ON p.BusinessEntityID = pp.BusinessEntityID
+--JOIN Sales.SalesPerson AS sp
+--	ON sp.BusinessEntityID = p.BusinessEntityID;
+--GO
+
+--SELECT * FROM Person.Person AS p
+--JOIN Person.PersonPhone AS pp
+--	ON p.BusinessEntityID = pp.BusinessEntityID
+--JOIN Sales.SalesPerson AS sp
+--	ON sp.BusinessEntityID = p.BusinessEntityID
+--OPTION (FORCE ORDER);
+--GO
+-- Conclusion: don't force orders
+
+/*
+
+سفارش به همراه جزییات آن از تمام مشتریان حتی آن هایی که سفارش نداشته اند
+
+*/
+
+
+
+SELECT
+	c.CustomerID, c.CompanyName,
+	o.OrderID,
+	od.ProductID, od.Qty
+FROM customers AS c
+LEFT JOIN Orders As o
+	ON c.CustomerID = o.CustomerID
+JOIN OrderDetails AS od
+	ON od.OrderID = o.OrderID;
+GO
+
+SELECT
+	c.CustomerID, c.CompanyName,
+	o.OrderID,
+	od.ProductID, od.Qty
+FROM customers AS c
+LEFT JOIN Orders As o
+	ON c.CustomerID = o.CustomerID
+LEFT JOIN OrderDetails AS od
+	ON od.OrderID = o.OrderID;
+GO
+
