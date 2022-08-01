@@ -1,4 +1,4 @@
-﻿cuse SampleDb
+﻿use SampleDb
 use NikamoozDB
 /*
 Session 6
@@ -373,5 +373,236 @@ LEFT JOIN Orders As o
 	ON c.CustomerID = o.CustomerID
 LEFT JOIN OrderDetails AS od
 	ON od.OrderID = o.OrderID;
+GO
+
+
+
+/*
+تمرین کلاسی شماره 7
+.نمایش سفارش به‌همراه جزئیات آن از تمامی مشتریان حتی آن‌هایی که سفارش نداشته‌اند 
+
+CustomerID   CompanyName   OrderID  ProductID   Qty  
+----------   ------------  -------  ---------  ----- 
+   1         شرکت IR- AA   10643      28        15   
+   1         شرکت IR- AA   10643      39        21   
+   ...		 			  		      		      
+   22        شرکت IR- AV   NULL       NULL      NULL 
+   ...		 			  		      		      
+   57        شرکت IR- CE   NULL       NULL      NULL 
+   ...		 			  		      		      
+   91        شرکت IR- DM   10374      31        30   
+   91        شرکت IR- DM   10374      58        15  
+
+(2157 rows affected)
+
+*/
+SELECT
+	C.CustomerID, C.CompanyName,
+	O.OrderID,
+	OD.ProductID, OD.Qty
+FROM dbo.Customers AS C
+LEFT JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+LEFT JOIN dbo.OrderDetails AS OD
+	ON O.OrderID = OD.OrderID;
+GO
+--------------------------------------------------------------------
+
+/*
+در بهینه‌سازی کوئری Query Optimizer اجرایی و رفتار Plan بررسی
+*/
+
+
+-- .نمایش جزئیات سفارش مشتریانی که سفارش داشته‌اند
+SELECT
+	C.CustomerID,
+	O.OrderID,
+	OD.ProductID, OD.Qty
+FROM dbo.Customers AS C
+JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+JOIN dbo.OrderDetails AS OD
+	ON O.OrderID = OD.OrderID
+ORDER BY C.CustomerID;
+GO
+
+SELECT
+	C.CustomerID,
+	O.OrderID,
+	OD.ProductID,
+	OD.Qty
+FROM dbo.Customers AS C
+LEFT JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+JOIN dbo.OrderDetails AS OD
+	ON O.OrderID = OD.OrderID
+ORDER BY C.CustomerID;
+GO
+--------------------------------------------------------------------
+
+-- نمایش جزئیات سفارش تمامی مشتریان حتی آن‌هایی که سفارش هم نداشته‌اند به 3 روش
+SELECT 
+	C.CustomerID,
+	O.OrderID,
+	OD.ProductID,
+	OD.Qty
+FROM dbo.Customers AS C
+LEFT JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+LEFT JOIN dbo.OrderDetails AS OD
+	ON O.OrderID = OD.OrderID;
+GO
+
+SELECT
+	C.CustomerID,
+	O.OrderID,
+	OD.ProductID,
+	OD.Qty
+FROM dbo.Orders AS O
+JOIN dbo.OrderDetails AS OD
+	ON O.OrderID = OD.OrderID
+RIGHT JOIN dbo.Customers AS C
+		ON O.CustomerID = C.CustomerID;
+GO
+
+SELECT
+	C.CustomerID,
+	O.OrderID,
+	OD.ProductID,
+	OD.Qty
+FROM dbo.Customers AS C
+LEFT JOIN
+	(dbo.Orders AS O
+	 JOIN dbo.OrderDetails AS OD
+		ON O.OrderID = OD.OrderID)
+	ON C.CustomerID = O.CustomerID;
+GO
+--------------------------------------------------------------------
+
+-- JOIN در COUNT بررسی رفتار
+SELECT 
+	C.CustomerID,
+	COUNT(*) AS Num
+FROM dbo.Customers AS C
+LEFT JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+GROUP BY C.CustomerID
+ORDER BY C.CustomerID;
+GO
+
+SELECT 
+	C.CustomerID,
+	COUNT(OrderID) AS Num
+FROM dbo.Customers AS C
+LEFT JOIN dbo.Orders AS O
+	ON C.CustomerID = O.CustomerID
+GROUP BY C.CustomerID
+ORDER BY C.CustomerID;
+GO
+--------------------------------------------------------------------
+
+/*
+FULL [OUTER] JOIN
+*/
+
+DROP TABLE IF EXISTS dbo.Personnel, dbo.PersonnelTyp;
+GO
+
+CREATE TABLE dbo.Personnel
+(
+	ID INT IDENTITY,
+	Family NVARCHAR(50),
+	Typ NVARCHAR(20)
+);
+GO
+
+CREATE TABLE dbo.PersonnelTyp
+(
+	ID INT IDENTITY,
+	Title NVARCHAR(20)
+);
+GO
+
+INSERT INTO dbo.Personnel
+VALUES
+	(N'احمدی',N'مدیر عامل'),
+	(N'تقوی',N'سرپرست'),
+	(N'سعادت',N'مدیر'),
+	(N'جعفری',N'نامشخص');
+GO
+
+INSERT INTO dbo.PersonnelTyp
+VALUES
+	(N'مدیر عامل'),
+	(N'مدیر'),
+	(N'سرپرست'),
+	(N'کارشناس'),
+	(N'تکنسین');
+GO
+
+SELECT
+	P.Family, PT.Title
+FROM dbo.Personnel AS P
+FULL OUTER JOIN dbo.PersonnelTyp AS PT
+	ON P.Typ = PT.Title;
+GO
+
+SQL server behaviour with NULL in different JOIN
+*/
+
+CREATE TABLE J1
+(
+	ID INT
+);
+GO
+
+CREATE TABLE J2
+(
+	ID INT,
+	Title NVARCHAR(10)
+);
+GO
+
+
+SELECT * FROM J1
+SELECT * FROM J2
+
+INSERT j1
+VALUES
+	(1),
+	(2),
+	(NULL),
+	(NULL);
+GO
+
+
+INSERT j2
+VALUES
+	(1, 'One'),
+	(2, 'Two'),
+	(NULL, 'Three');
+GO
+
+-- Null is counted in CROSS JOIN
+SELECT
+	j1.ID, j2.Title
+FROM j1
+CROSS JOIN j2;
+GO
+
+-- Null gets preserved in JOIN: Nulls fall down because logic is accept true
+SELECT
+	j1.ID, j2.Title
+FROM j1
+JOIN j2
+	ON j1.ID = j2.ID;
+GO
+
+
+SELECT
+	j1.ID, j2.Title
+FROM j1
+LEFT JOIN j2
+	ON j1.ID = j2.ID;
 GO
 
