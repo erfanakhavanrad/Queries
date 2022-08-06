@@ -122,3 +122,34 @@ FROM dbo.Orders
 GROUP BY EmployeeID;
 GO
 
+/*
+کارمندانی که نام خانوداگی انها با پ شروع میشود
+*/
+SELECT * FROM dbo.Employees
+	WHERE lastname LIKE N'پ%';
+GO
+
+
+/*
+تمامی سفارشات ثبت شده توسط کارمندانی که نام خانوداگی انها با پ شروع میشود
+با استفاده از JOIN
+*/
+SELECT 
+	e.EmployeeID, o.OrderID
+FROM dbo.Employees AS e
+JOIN dbo.orders AS o
+	ON e.EmployeeID = o.EmployeeID
+	WHERE lastname LIKE N'پ%';
+GO
+
+/*
+تمامی سفارشات ثبت شده توسط کارمندانی که نام خانوداگی انها با پ شروع میشود
+با استفاده از Subquery
+*/
+SELECT 
+	e.EmployeeID, o.OrderID
+FROM dbo.Employees AS e
+JOIN dbo.orders AS o
+	ON e.EmployeeID = o.EmployeeID
+	WHERE lastname LIKE N'پ%';
+GO
