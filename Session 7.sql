@@ -231,3 +231,147 @@ FROM dbo.Customers AS c
 	WHERE c.CustomerID NOT IN(SELECT customerID FROM dbo.Orders WHERE OrderDate  = '2016-05-05');
 GO
 
+SELECT
+	c.CustomerID,
+	c.CompanyName
+FROM dbo.Customers AS c
+	WHERE c.CustomerID NOT IN(SELECT customerID FROM dbo.Orders WHERE OrderDate  <> '2016-05-05');
+GO
+
+SELECT
+	c.CustomerID,
+	c.CompanyName
+FROM dbo.Customers AS c
+	WHERE c.CustomerID NOT IN (SELECT DISTINCT customerID FROM dbo.Orders WHERE OrderDate  <> '2016-05-05');
+GO
+
+SELECT
+	c.CustomerID,
+	c.CompanyName
+FROM dbo.Customers AS c
+	WHERE c.CustomerID  IN (SELECT DISTINCT customerID FROM dbo.Orders WHERE OrderDate  <> '2016-05-05');
+GO
+
+/*
+رفتار
+NULL
+با گزاره
+IN
+
+نمایش تمامی مشتریانی که در منطقه مرکز واقع شده اند
+*/
+SELECT 
+	*
+FROM dbo.Customers 
+	WHERE Region = N'مرکز';
+GO
+
+/*
+	Show all customers where their Region is null
+*/
+-- WRONG
+SELECT * FROM dbo.Customers WHERE Region IN (NULL)
+
+
+-- RIGHT
+SELECT * FROM dbo.Customers WHERE Region IS NULL
+
+
+/*
+رفتار
+NULL
+با گزاره
+NOT IN
+
+نمایش تمام مشتریانی که مقدار فیلد
+REGION
+آنها برابر با نال یا مرکز نباشد
+*/
+-- WRONG
+SELECT	
+	*
+FROM dbo.Customers
+	WHERE Region NOT IN (N'مرکز', NULL)
+ORDER BY Region DESC;
+GO
+
+SELECT	
+	*
+FROM dbo.Customers
+	WHERE Region <>N'مرکز'
+	AND Region IS NOT NULL
+ORDER BY Region DESC;
+GO
+
+/*
+نمایش تمامی مشتریانی که مقدار فیلد ریجن آنها برابر با مرکز یا غرب نباشد
+*/
+SELECT
+	*
+FROM dbo.Customers
+	WHERE Region NOT IN (N'غرب',N'مرکز')
+ORDER BY Region;
+GO
+
+/*
+مشخصات شرکت هایی که کد سفارشات انها فرد یا اصلا درخواست سفارش نداشته اند
+*/
+SELECT
+	CustomerID, CompanyName
+FROM dbo.Customers
+	WHERE CustomerID IN (SELECT CustomerID from dbo.Orders WHERE OrderID % 2 = 0)
+GO
+
+-- CORRELATED SUBQUERIES
+/*
+نمایش جدیدترین کد سفارش هر مشتری
+*/
+SELECT
+	CustomerID,
+	MAX(OrderID) AS newestOrder
+FROM dbo.Orders
+GROUP BY CustomerID;
+GO
+
+/*
+عدم امکان نوشتن کوئری قبلی باز استفاده از انواع
+Self contained valued
+*/
+SELECT 
+	CustomerID,
+	(SELECT MAX(OrderID) FROM dbo.Orders) 
+FROM dbo.Orders
+
+SELECT 
+	CustomerID,
+	OrderID 
+FROM dbo.Orders
+	WHERE OrderID = (SELECT MAX (OrderID) FROM dbo.Orders);
+GO
+
+/*
+نمایش جدیدترین کد سفارش هر مشتری با
+Correlated subquery
+*/
+SELECT
+	DISTINCT o1.CustomerID,
+	(SELECT MAX (o2.OrderID) FROM dbo.Orders AS o2
+		WHERE o2.CustomerID = o1.CustomerID) AS [new Order]
+FROM dbo.Orders AS o1;
+GO
+
+SELECT
+	o1.CustomerID,
+	(SELECT MAX (o2.OrderID) FROM dbo.Orders AS o2
+		WHERE o2.CustomerID = o1.CustomerID) AS [new Order]
+FROM dbo.Orders AS o1
+GROUP BY o1.CustomerID
+GO
+
+SELECT
+	c.CustomerID,
+	(SELECT MAX(OrderID) FROM dbo.Orders AS o
+		WHERE o.CustomerID = c.CustomerID) AS newOrder
+FROM dbo.Customers AS c;
+GO
+
