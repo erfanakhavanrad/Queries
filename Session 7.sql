@@ -569,3 +569,77 @@ GO
 SELECT * FROM dbo.Orders
 	WHERE EXISTS (SELECT 1 FROM dbo.Customers WHERE city = N'تهران');
 GO
+
+
+/*
+نام و نام خانوداگی کارمندانی که
+با مشتری 18 ثبت سفارش داشته اند
+*/
+
+-- With JOIN
+SELECT
+	e.FirstName, e.LastName
+FROM dbo.Employees AS e
+JOIN dbo.Orders AS o
+	ON e.EmployeeID = o.EmployeeID
+	WHERE o.CustomerID = 18;
+GO
+
+-- Duplicated value fix:
+SELECT
+	e.FirstName, e.LastName
+FROM dbo.Employees AS e
+JOIN dbo.Orders AS o
+	ON e.EmployeeID = o.EmployeeID
+	WHERE o.CustomerID = 18
+GROUP BY e.FirstName, e.LastName
+GO
+
+SELECT
+DISTINCT	e.FirstName, e.LastName
+FROM dbo.Employees AS e
+JOIN dbo.Orders AS o
+	ON e.EmployeeID = o.EmployeeID
+	WHERE o.CustomerID = 18;
+GO
+
+-- With IN
+SELECT
+	e.FirstName, e.LastName
+FROM dbo.Employees AS e
+	WHERE e.EmployeeID IN (SELECT o.EmployeeID FROM dbo.Orders AS o 
+								WHERE o.CustomerID = 18);
+GO
+
+-- With EXISTS
+SELECT
+	e.FirstName, e.LastName
+FROM dbo.Employees AS e
+	WHERE EXISTS (SELECT 1 FROM dbo.Orders AS o
+					WHERE o.CustomerID = 18
+					AND  e.EmployeeID = o.EmployeeID );
+GO
+
+
+-- UNION and UNION ALL
+SELECT state, Region, City FROM dbo.Employees
+UNION
+SELECT state, Region, City FROM dbo.Customers
+GO
+
+SELECT state, Region, City FROM dbo.Employees
+UNION
+SELECT Region, state, City FROM dbo.Customers
+GO
+
+SELECT state, Region, City FROM dbo.Employees
+UNION ALL
+SELECT state, Region, City FROM dbo.Customers
+GO
+
+-- Group by UNION
+SELECT state, Region, City FROM dbo.Employees
+UNION ALL
+SELECT state, Region, City FROM dbo.Customers
+ORDER BY Region
+GO
