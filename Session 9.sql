@@ -190,14 +190,142 @@ JOIN dbo.OrderDetails AS od
 	GROUP BY  o.CustomerID, o.OrderID
 	HAVING COUNT(od.Qty) > 5;
 GO
--- SUBQUERY
+
+/*
+Subquery استراتژی ارسال بخشی از رکوردها به
+
+Outer Query: OrderDetails
+Subquery: Orders
+*/
 SELECT
-	o.OrderID
-FROM dbo.Orders AS o
-WHERE o.OrderID = (SELECT od.OrderID FROM dbo.OrderDetails AS od
-		WHERE od.Qty > 5
-		AND od.OrderID = o.OrderID)
+	 DISTINCT (SELECT O.CustomerID FROM dbo.Orders AS O
+				WHERE O.OrderID = OD.OrderID) AS CustomerID,
+	COUNT(OD.OrderID) AS Num
+FROM dbo.OrderDetails AS OD
+GROUP BY OD.OrderID
+	HAVING COUNT(OD.OrderID) > 5;
+GO
 
--- Derived Table
 
--- Part 1.2 14Min
+/*
+Subquery استراتژی ارسال تمامی رکوردها به
+
+Outer Query: Orders
+Subquery: OrderDetails
+*/
+SELECT
+	O.CustomerID,
+	(SELECT COUNT(OD.OrderID) FROM dbo.OrderDetails AS OD
+		WHERE OD.OrderID = O.OrderID
+		HAVING COUNT(OD.OrderID) > 5) AS Num
+FROM dbo.Orders AS O;
+GO
+
+-- Derived Table (الغریق یتشبث بالحشیش)
+SELECT DISTINCT * FROM
+(
+	SELECT
+	O.CustomerID,
+	(SELECT COUNT(OD.OrderID) FROM dbo.OrderDetails AS OD
+		WHERE OD.OrderID = O.OrderID
+		HAVING COUNT(OD.OrderID) > 5) AS Num
+	FROM dbo.Orders AS O
+) AS Tmp
+	WHERE Tmp.Num IS NOT NULL;
+GO
+
+-- Derived Table (هوشمندانه)
+SELECT DISTINCT * FROM
+(
+	SELECT
+	O.CustomerID,
+	(SELECT COUNT(OD.OrderID) FROM dbo.OrderDetails AS OD
+		WHERE OD.OrderID = O.OrderID) AS Num
+	FROM dbo.Orders AS O
+) AS Tmp
+	WHERE Tmp.Num > 5;
+GO
+
+-- AdventureWorks2017 تاثیر کوئری‌هایی مشابه با کوئری‌های بالا در دیتابیس بزرگتری با عنوان
+USE AdventureWorks2017;
+GO
+
+SELECT * FROM SALES.SalesOrderDetail; -- 121317 Records
+SELECT * FROM SALES.SalesOrderHeader; -- 31465 Records
+GO
+
+-- Derived Table (الغریق یتشبث بالحشیش)
+SELECT DISTINCT * FROM
+(
+	SELECT
+	SOH.CustomerID,
+	(SELECT COUNT(SOD.SalesOrderID) FROM Sales.SalesOrderDetail AS SOD
+		WHERE SOH.SalesOrderID = SOD.SalesOrderID
+		HAVING COUNT(SOD.SalesOrderID) > 5) AS Num
+FROM Sales.SalesOrderHeader AS SOH) AS Tmp
+	WHERE TMP.Num IS NOT NULL;
+GO
+
+-- Derived Table (هوشمندانه)
+SELECT DISTINCT * FROM
+(
+	SELECT
+	SOH.CustomerID,
+	(SELECT COUNT(SOD.SalesOrderID) FROM Sales.SalesOrderDetail AS SOD
+		WHERE SOH.SalesOrderID = SOD.SalesOrderID) AS Num
+FROM Sales.SalesOrderHeader AS SOH) AS Tmp
+	WHERE TMP.Num > 5;
+GO
+
+USE NikamoozDB;
+GO
+
+-- ???
+SELECT
+	O.CustomerID,
+	COUNT(O.OrderID) AS Num
+FROM dbo.Orders AS O
+	WHERE EXISTS (SELECT 1 FROM dbo.OrderDetails AS OD
+					WHERE OD.OrderID = O.OrderID
+					HAVING COUNT(OD.OrderID) > 5)
+GROUP BY O.CustomerID;
+GO
+--------------------------------------------------------------------
+
+/*
+نکات تکمیلی
+*/
+
+-- تعداد مشتریان به‌تفکیک هر سال
+SELECT
+	YEAR(O.OrderDate) AS OrderYear,
+	COUNT(DISTINCT O.CustomerID) AS Num
+FROM dbo.Orders AS O -- .در کوئری‌های پیچیده نگهداری از نسخه‌های مختلف از اسامی مستعار، موجب عدم خوانایی و حتی گاهی خطا می‌شود
+GROUP BY YEAR(OrderDate);
+GO
+
+-- Derived Table کوئری بالا با استفاده از
+SELECT
+	Tmp.OrderYear,
+	COUNT(DISTINCT Tmp.CustomerID) AS Num
+FROM
+	(SELECT
+		YEAR(OrderDate) AS OrderYear,
+		CustomerID 
+	 FROM dbo.Orders) AS Tmp
+GROUP BY Tmp.OrderYear; 
+GO
+
+-- تو در تو Derived Table
+SELECT
+	DT2.OrderYear,
+	DT2.Cust_Num
+FROM (SELECT
+		DT1.OrderYear,
+		COUNT(DISTINCT DT1.CustomerID) AS Cust_Num
+	  FROM (SELECT
+				YEAR(OrderDate) AS OrderYear,
+				CustomerID
+			FROM dbo.Orders) AS DT1
+			GROUP BY OrderYear) AS DT2;
+GO
