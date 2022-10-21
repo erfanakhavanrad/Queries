@@ -261,3 +261,163 @@ WHILE
 اجرای کد در یک حلقه
 */
 
+DECLARE @I AS INT =  1;
+WHILE @I <= 10
+BEGIN
+	SELECT * FROM dbo.Customers
+		WHERE CustomerID = @I
+	SET @I = @I + 1;
+END
+GO
+
+-- جهت خروج از حلقه BREAK استفاده از
+DECLARE @I AS INT = 1;
+WHILE @I <= 10
+BEGIN
+	IF @I = 6 BREAK;
+	PRINT @I;
+	SET @I = @I + 1;
+END
+GO
+
+-- جهت نادیده گرفتن دستورات بعدی و پرش به ابتدای حلقه CONTINUE استفاده از 
+DECLARE @I AS INT = 0;
+WHILE @I < 92
+BEGIN
+	SET @I = @I + 1;
+	IF(SELECT Region FROM dbo.Customers
+			WHERE CustomerID  = @I) IS NULL CONTINUE;
+	SELECT CustomerID, Region FROM dbo.Customers
+		WHERE CustomerID = @I
+END
+GO
+
+
+--------------------------------------------------------------------
+
+-- IF & WHILE
+DROP TABLE IF EXISTS dbo.Digits;
+GO
+
+CREATE TABLE dbo.Digits
+(
+	Num INT
+);
+GO
+
+DECLARE @i AS INT = 1;
+WHILE @i <= 1000
+BEGIN
+	IF @i % 2 = 0 -- طرح زوج و فرد
+	INSERT INTO dbo.Digits(Num)
+		VALUES(@i);
+	SET @i = @i + 1;
+END
+GO
+
+SELECT * FROM dbo.Digits;
+GO
+
+
+
+-- Dynamic T-SQL
+
+-- جهت تعیین ستون‌های دلخواه در کوئری SELECT عدم استفاده از متغیر در بخش
+DECLARE @Col VARCHAR(50) = 'CustomerID';
+SELECT @Col FROM dbo.Customers;
+GO
+
+-- جهت تعیین ستون‌ دلخواه جهت اعمال شرط WHERE عدم استفاده از متغیر در بخش
+DECLARE @Col VARCHAR(50) = 'CustomerID';
+SELECT * FROM dbo.Customers
+	WHERE @Col > 80;
+GO
+--------------------------------------------------------------------
+
+/*
+EXEC یا EXECUTE
+قابلیت استفاده با رشته‌های یونیکدی و غیر‌یونیکدی
+*/
+
+DECLARE @Col VARCHAR(50) = 'CustomerID';
+DECLARE @Sql VARCHAR(200) = 'SELECT ' + @Col +' FROM dbo.Customers';
+--PRINT @Sql
+EXEC (@Sql); -- !پرانتز‌گذاری فراموش نشود
+GO
+
+DECLARE @City NVARCHAR(20) = N'تهران';
+DECLARE @Sql NVARCHAR(200) = 'SELECT * FROM dbo.Customers WHERE City = N''' + @City +'''';
+--PRINT @Sql
+EXEC (@Sql); -- !پرانتز‌گذاری فراموش نشود
+GO
+--------------------------------------------------------------------
+
+/*
+sp_executesql
+قابلیت استفاده فقط با رشته‌های یونیکدی
+:فقط یکی از انواع‌داده زیر با این روش قابل استفاده است
+NTEXT/NCHAR/NVARCHAR
+*/
+
+DECLARE @Col NVARCHAR(50) = 'CustomerID';
+DECLARE @Sql NVARCHAR(200) = 'SELECT ' + @Col +' FROM dbo.Customers';
+--PRINT @Sql;
+EXEC sp_executesql @Sql;
+GO
+
+-- معادل کوئری بالا
+EXEC sp_executesql N'SELECT CustomerID FROM dbo.Customers';
+GO
+
+-- !غلط است
+EXEC sp_executesql 'SELECT @@VERSION'
+GO
+
+-- اصلاح کوئری بالا
+EXEC sp_executesql N'SELECT @@VERSION'
+GO
+
+-- روش اول پارامتری
+EXEC sp_executesql N'SELECT * FROM dbo.Orders WHERE CustomerID = @Customerid',
+	N'@Customerid INT', @Customerid = 80;
+GO
+
+EXEC sp_executesql N'SELECT * FROM dbo.Orders WHERE OrderID = @OrderID OR CustomerID = @Customerid',
+	N'@OrderID INT, @Customerid INT', @OrderID=10249 ,@Customerid=79;
+GO
+
+-- روش دوم پارامتری
+DECLARE @Sql AS NVARCHAR(100);
+SET @Sql = N'SELECT OrderID, CustomerID, EmployeeID, Orderdate FROM dbo.Orders
+				WHERE OrderID = @OrderID;';
+EXEC sp_executesql
+	@stmt = @sql,
+	@params = N'@OrderID AS INT',
+	@OrderID = 10250;
+GO-- !!!ترتیب پارامترها مهم است
+
+-- ???
+DECLARE @Sql AS NVARCHAR(100); /*DECLARE @Sql AS NVARCHAR(200)*/
+SET @Sql = N'SELECT OrderID, CustomerID, EmployeeID, Orderdate FROM dbo.Orders
+				WHERE OrderID BETWEEN @Min AND @Max';
+EXEC sp_executesql
+	@stmt = @Sql,
+	@params = N'@Min AS INT, @MAX AS INT',
+	@Min= 10248, @Max= 10250;
+GO
+
+
+
+-- Stored procedure
+
+/*
+CREATE { PROC | PROCEDURE } 
+    [schema_name.] procedure_name
+    [ { @parameter data_type }  
+        [ = default ] [ OUT | OUTPUT | [READONLY]  
+    ] [ ,...n ]   
+AS { [ BEGIN ] sql_statement [;] [ ...n ] [ END ] }  
+[;]  
+*/
+
+-- ساده SP ایجاد یک
