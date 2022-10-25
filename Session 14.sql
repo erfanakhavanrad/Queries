@@ -421,3 +421,72 @@ AS { [ BEGIN ] sql_statement [;] [ ...n ] [ END ] }
 */
 
 -- ساده SP ایجاد یک
+DROP PROCEDURE IF EXISTS GetAllCustomers;
+GO
+
+CREATE PROCEDURE GetAllCustomers
+AS
+BEGIN 
+	SELECT
+		CustomerID, City
+	FROM dbo.Customers
+END
+GO
+
+-- SP روش‌های فراخوانی
+EXEC GetAllCustomers;
+GO
+GetAllCustomers;
+GO
+--------------------------------------------------------------------
+
+-- SP ویرایش
+ALTER PROCEDURE GetAllCustomers
+AS
+BEGIN	
+	SELECT 
+		CustomerID, State, City
+	FROM dbo.Customers;
+END
+GO
+
+EXEC GetAllCustomers;
+GO
+--------------------------------------------------------------------
+
+/*
+SP With Input Parameters
+*/
+
+DROP PROCEDURE IF EXISTS GetEmployeeByID;
+GO
+
+CREATE PROCEDURE GetEmployeeByID
+(
+	@ID INT
+)
+AS
+BEGIN
+	SELECT
+		EmployeeID, FirstName, LastName
+	FROM dbo.Employees
+		WHERE EmployeeID = @ID;
+END
+GO
+
+-- با پارامتر ورودی SP روش اول فراخوانی
+EXEC GetEmployeeByID 1;
+GO
+
+-- با پارامتر ورودی SP روش دوم فراخوانی
+EXEC GetEmployeeByID @ID = 1;
+GO
+
+-- با پارامتر ورودی SP روش سوم فراخوانی
+GetEmployeeByID 1;
+GO
+--------------------------------------------------------------------
+
+/*
+SP With Output Parameters
+*/
