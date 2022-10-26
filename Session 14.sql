@@ -490,3 +490,126 @@ GO
 /*
 SP With Output Parameters
 */
+
+DROP PROCEDURE IF EXISTS ExistsCustomer;
+GO
+
+CREATE PROCEDURE ExistsCustomer
+(
+	@CustomerID INT,
+	@Exists BIT OUTPUT
+)
+AS
+BEGIN
+	IF EXISTS (SELECT CustomerID FROM dbo.Customers WHERE CustomerID  = @CustomerID)
+	BEGIN
+		SET @Exists = 'TRUE'
+	END
+	ELSE SET @Exists = 'FALSE'
+	
+END
+GO
+-- دارای پارامتر ورودی و خروجی SP فراخوانی
+DECLARE @V_RecordExistance BIT;
+EXEC ExistsCustomer 5555555, @V_RecordExistance OUTPUT;
+SELECT @V_RecordExistance;
+GO
+
+
+
+DROP PROCEDURE IF EXISTS ContactInfo;
+GO
+
+CREATE PROCEDURE ContanctInfo
+(
+	@FirstName NVARCHAR(100),
+	@LastName NVARCHAR(100),
+	@FullName NVARCHAR(100) OUTPUT
+)
+AS
+BEGIN
+	SELECT @FullName = CONCAT(@FirstName, ' ', @LastName);
+END
+
+DECLARE @V_FullName NVARCHAR(100);
+EXEC ContanctInfo N'Mehdi', N'Shishebori',@V_FullName OUTPUT;
+SELECT @V_FullName;
+GO
+
+
+
+
+/*
+TVP: Table Value Parameter
+*/
+DROP TABLE IF EXISTS dbo.std, dbo.std_lessons;
+GO
+
+CREATE TABLE dbo.std
+(
+	Code INT,
+	FirstName NVARCHAR(100),
+	LastName NVARCHAR(100)
+);
+GO
+
+CREATE TABLE dbo.std_lessons
+(
+	Code INT,
+	Lesson_Code INT,
+	Lesson_name NVARCHAR(50)
+);
+GO
+
+DROP TYPE IF EXISTS dbo.Std_LessonsType;
+GO
+
+CREATE TYPE dbo.Std_LessonsType AS TABLE
+(
+	Code INT,
+	Lesson_Code INT,
+	Lesson_Name NVARCHAR(100)
+);
+GO
+
+DROP PROC IF EXISTS Insert_Std_Lesson;
+GO
+
+CREATE PROCEDURE Insert_Std_Lesson
+(
+	@Code INT,
+	@FirstName NVARCHAR(100),
+	@LastName NVARCHAR(100),
+	@T dbo.Std_LessonsType READONLY
+)
+AS
+BEGIN
+	INSERT INTO dbo.std (code, FirstName, LastName)
+		VALUES (@Code, @FirstName, @LastName)
+
+    INSERT INTO dbo.std_lessons (Code, Lesson_Code, Lesson_name)
+		SELECT Code, Lesson_Code, Lesson_Name FROM @T
+END
+GO
+
+
+--تست برای درج دیتا
+DECLARE @CODE INT = 1;
+DECLARE @FirstName NVARCHAR(100) = N'پریسا';
+DECLARE @LastName NVARCHAR(100) = N'فاطمی';
+DECLARE @T AS dbo.Std_LessonsType;
+
+INSERT @T
+	VALUES (1, 100, N'فیزیک'),
+		(1, 100, N'شیمی'),
+		(1, 100, N'هندسه'),
+		(1, 100, N'زبان'),
+		(1, 100, N'ادبیات');
+EXEC Insert_Std_Lesson @CODE, @FirstName, @LastName, @T;
+GO
+
+SELECT * FROM dbo.std
+SELECT * FROM dbo.std_lessons
+
+--DELETE  FROM dbo.std
+--DELETE  FROM dbo.std_lessons
