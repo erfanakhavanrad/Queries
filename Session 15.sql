@@ -286,3 +286,108 @@ GO
 
 DROP TABLE IF EXISTS dbo.Persons, dbo.History_Persons;
 GO
+
+CREATE TABLE dbo.Persons
+(
+	Code INT,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50)
+)
+GO
+
+CREATE TABLE dbo.History_Persons
+(
+	Code INT,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	Action_Type VARCHAR(10),
+	Action_Date DATE
+)
+GO
+
+DROP TRIGGER IF EXISTS Trg_Persons_Insert, Trg_Persons_Update, Trg_Persons_Delete;
+GO
+
+/*
+Insert ایجاد تریگر برای حالت
+*/
+CREATE TRIGGER Trg_Persons_Insert ON dbo.Persons
+AFTER INSERT 
+AS
+	INSERT INTO dbo.History_Persons(Code, FirstName, LastName, Action_Type, Action_Date)
+	SELECT
+		Code, FirstName, LastName, 'INSERT', GETDATE()
+	FROM inserted
+GO
+
+/*
+Update ایجاد تریگر برای حالت
+*/
+CREATE TRIGGER Trg_Persons_Update ON dbo.Persons
+AFTER UPDATE 
+AS
+	-- مقدار قبل از به‌روزرسانی
+	INSERT INTO dbo.History_Persons (Code, FirstName, LastName, Action_Type, Action_Date)
+	SELECT
+			Code, FirstName, LastName, 'OldValue', GETDATE()
+	FROM deleted
+
+	-- مقدار پس از به‌روزرسانی
+		INSERT INTO dbo.History_Persons (Code, FirstName, LastName, Action_Type, Action_Date)
+	SELECT
+			Code, FirstName, LastName, 'NewValue', GETDATE()
+	FROM inserted
+
+GO
+
+
+/*
+Delete ایجاد تریگر برای حالت
+*/
+CREATE TRIGGER Trg_Persons_Delete ON dbo.Persons
+AFTER DELETE
+AS
+	INSERT INTO dbo.History_Persons (Code, FirstName, LastName, Action_Type, Action_Date)
+	SELECT
+			Code, FirstName, LastName, 'DELETE', GETDATE()
+	FROM deleted
+GO
+
+
+-- dbo.Persons درج رکورد در جدول
+INSERT INTO dbo.Persons
+	VALUES (1,N'مهدی',N'احمدی'),
+	       (2,N'امید',N'سعادتی'),
+		   (3,N'سپیده',N'کریمی');
+GO
+
+-- مشاهده رکوردهای جدول اصلی و جدول سوابق آن
+SELECT * FROM dbo.Persons;
+SELECT * FROM History_Persons;
+GO
+
+-- dbo.Persons به‌روزرسانی رکورد در جدول
+UPDATE dbo.Persons
+	SET Code = 100
+		WHERE Code = 1;
+GO
+
+-- مشاهده رکوردهای جدول اصلی و جدول سوابق آن
+SELECT * FROM dbo.Persons;
+SELECT * FROM History_Persons;
+GO
+
+-- dbo.Persons حذف رکورد از جدول
+DELETE FROM dbo.Persons
+	WHERE Code = 100;
+GO
+
+-- مشاهده رکوردهای جدول اصلی و جدول سوابق آن
+SELECT * FROM dbo.Persons;
+SELECT * FROM History_Persons;
+GO
+--------------------------------------------------------------------
+
+/*
+CONTEXT_INFO
+*/
