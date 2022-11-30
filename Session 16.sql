@@ -120,3 +120,108 @@ GO
 
 /* Computed Column */
 
+SET NOCOUNT ON;
+GO
+
+DROP TABLE IF EXISTS dbo.Compute_Tbl;
+GO
+
+CREATE TABLE dbo.Compute_Tbl
+(
+	ID INT IDENTITY,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	FullName AS (FirstName + ' - ' + LastName), -- Computed Column
+	FatherName NVARCHAR(50)
+);
+GO
+
+INSERT INTO dbo.Compute_Tbl
+	VALUES (N'حمید', N'سجادی', N'علی'),
+			(N'ترانه', N'رضایی', N'رضا'),
+			(N'پوریا', N'سرمدی', N'محمد'),	
+			(N'رضا', N'محمدی', N'بهزاد'),
+			(N'پروانه', N'صداقت', N'سعید');
+GO 500
+
+SELECT * FROM dbo.Compute_Tbl;
+GO
+
+DROP TABLE IF EXISTS dbo.Compute_Persisted_Tbl;
+GO
+
+CREATE TABLE dbo.Compute_Persisted_Tbl
+(
+	ID INT IDENTITY,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	FullName AS (FirstName + ' - ' + LastName) PERSISTED, -- Computed Column
+	FatherName NVARCHAR(50)
+);
+GO
+
+INSERT INTO dbo.Compute_Persisted_Tbl
+	VALUES	(N'حمید', N'سجادی', N'علی'),
+			(N'ترانه', N'رضایی', N'رضا'),
+			(N'پوریا', N'سرمدی', N'محمد'),	
+			(N'رضا', N'محمدی', N'بهزاد'),
+			(N'پروانه', N'صداقت', N'سعید');
+GO 1000
+
+SELECT * FROM dbo.Compute_Persisted_Tbl;
+GO
+
+-- بررسی فضای تخصیص یافته به جداول
+SP_SPACEUSED Compute_Tbl;
+GO
+SP_SPACEUSED Compute_Persisted_Tbl;
+GO
+--------------------------------------------------------------------
+
+/*
+Computed Column بر روی UPDATE و INSERT عدم انجام عملیات‌های
+*/
+INSERT INTO dbo.Compute_Persisted_Tbl(FirstName,LastName,FullName,FatherName)
+	VALUES	(N'مهدی', N'کبیری', N'مهدی - کبیری', N'علی');
+GO
+
+INSERT INTO dbo.Compute_Tbl(FirstName,LastName,FullName,FatherName)
+	VALUES	(N'مهدی', N'کبیری', N'مهدی - کبیری', N'علی');
+GO
+
+UPDATE dbo.Compute_Tbl
+	SET FullName = 'My Value';
+GO
+
+UPDATE dbo.Compute_Persisted_Tbl
+	SET FullName = 'My Value';
+GO
+--------------------------------------------------------------------
+
+-- .ایرادی ندارد
+DELETE dbo.Compute_Persisted_Tbl
+	WHERE FullName = N'حمید - سجادی';
+GO
+
+-- .ایرادی ندارد
+DELETE dbo.Compute_Tbl
+	WHERE FullName = N'حمید - سجادی';
+GO
+
+-- .ایرادی ندارد
+UPDATE dbo.Compute_Tbl
+	SET FirstName = N'امین'
+	WHERE FirstName = N'حمید';
+GO
+
+-- .ایرادی ندارد
+UPDATE dbo.Compute_Persisted_Tbl
+	SET FirstName = N'امین'
+	WHERE FirstName = N'حمید';
+GO
+
+SELECT * FROM dbo.Compute_Tbl;
+GO
+
+SELECT * FROM dbo.Compute_Persisted_Tbl;
+GO
