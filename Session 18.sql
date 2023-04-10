@@ -303,7 +303,7 @@ GO
 --------------------------------------------------------------------
 
 --???
-USE AdventureWorks2017;
+USE AdventureWorks;
 GO
 
 DROP TABLE IF EXISTS dbo.SalesOrderHeader2;
@@ -338,7 +338,7 @@ GO
 . این است که تعداد رکوردهای بازگشتی آن کم باشد Nonclustered شانس اصلی برای استفاده از ایندکس
 */
 
-USE AdventureWorks2017
+USE AdventureWorks
 GO
 
 -- بررسی وجود جدول و حذف آن
@@ -393,7 +393,7 @@ SELECT
 	COUNT(*),page_type_desc AS Page_Count
 FROM sys.dm_db_database_page_allocations
 	(
-		DB_ID('AdventureWorks2017'),OBJECT_ID('SalesOrderHeader_Heap'),
+		DB_ID('AdventureWorks'),OBJECT_ID('SalesOrderHeader_Heap'),
 		NULL,NULL,'DETAILED'
 	)
 GROUP BY page_type_desc;
@@ -404,7 +404,7 @@ SELECT
 	COUNT(*),page_type_desc AS Page_Count
 FROM sys.dm_db_database_page_allocations
 	(
-		DB_ID('AdventureWorks2017'),OBJECT_ID('SalesOrderHeader_Clustered'),
+		DB_ID('AdventureWorks'),OBJECT_ID('SalesOrderHeader_Clustered'),
 		NULL,NULL,'DETAILED'
 	)
 GROUP BY page_type_desc;
@@ -417,7 +417,7 @@ SELECT
 	page_count,record_count
 FROM sys.dm_db_index_physical_stats
 (
-	DB_ID('AdventureWorks2017'),
+	DB_ID('AdventureWorks'),
 	OBJECT_ID('SalesOrderHeader_Heap'),
 	NULL,
 	NULL,
@@ -431,7 +431,7 @@ SELECT
 	page_count,record_count
 FROM sys.dm_db_index_physical_stats
 (
-	DB_ID('AdventureWorks2017'),
+	DB_ID('AdventureWorks'),
 	OBJECT_ID('SalesOrderHeader_Clustered'),
 	NULL,
 	NULL,
@@ -446,7 +446,7 @@ GO
 RID Lookup بررسی مفهوم 
 */
 
-USE AdventureWorks2017;
+USE AdventureWorks;
 GO
 
 -- بررسی وجود جدول و حذف آن
@@ -472,7 +472,7 @@ SELECT
 	page_count, record_count
 FROM 
 	sys.dm_db_index_physical_stats
-		(DB_ID('AdventureWorks2017'),OBJECT_ID('HeapTable'),NULL,NULL,'DETAILED');
+		(DB_ID('AdventureWorks'),OBJECT_ID('HeapTable'),NULL,NULL,'DETAILED');
 GO
 
 --بررسی حجم جدول
@@ -534,7 +534,7 @@ SELECT
 	page_count, record_count
 FROM 
 	sys.dm_db_index_physical_stats
-		(DB_ID('AdventureWorks2017'),OBJECT_ID('ClusteredTable'),NULL,NULL,'DETAILED');
+		(DB_ID('AdventureWorks'),OBJECT_ID('ClusteredTable'),NULL,NULL,'DETAILED');
 GO
 
 -- بررسی حجم جدول
@@ -691,11 +691,505 @@ SELECT *  FROM Customers WITH(INDEX(IX_Value))
 GO
 
 
+/**
+	07- Suitable IndexKey
+*/
+USE AdventureWorks;
+GO
+
+-- بررسی وجود جدول و حذف آن
+DROP TABLE IF EXISTS dbo.SalesOrderHeader2;
+GO
+-- تهیه کپی از جدول
+SELECT * INTO dbo.SalesOrderHeader2 FROM Sales.SalesOrderHeader;
+GO
+
+-- ایجاد ایندکس کلاستر
+CREATE UNIQUE CLUSTERED INDEX IX_Clustered ON dbo.SalesOrderHeader2(SalesOrderID);
+GO
+
+-- بررسی مقادیر کاندیداهای کلید ایندکس
+SELECT COUNT(*) FROM dbo.SalesOrderHeader2;
+GO
+
+-- Wide
+SELECT 
+	OrderDate, COUNT(*)
+FROM Sales.SalesOrderHeader
+GROUP BY OrderDate;
+
+-- Not Wide
+SELECT 
+	OnlineOrderFlag, COUNT(*)
+FROM Sales.SalesOrderHeader
+GROUP BY OnlineOrderFlag;
+
+-- Wide & Not Wide
+SELECT
+	RevisionNumber, COUNT(*)
+FROM Sales.SalesOrderHeader
+GROUP BY RevisionNumber;
+GO
+
+-- NonClustered ایجاد ایندکس های
+CREATE INDEX IX_OrderDate ON dbo.SalesOrderHeader2(OrderDate);
+CREATE INDEX IX_OnlineOrderFlag ON dbo.SalesOrderHeader2(OnlineOrderFlag);
+CREATE INDEX IX_RevisionNumber ON dbo.SalesOrderHeader2(RevisionNumber);
+GO
+
+--بررسی وضعیت استفاده از ایندکس ها
+SET STATISTICS IO ON;
+GO
+
+-- Wide
+SELECT * FROM dbo.SalesOrderHeader2
+	WHERE OrderDate = '2014-01-05';
+GO
+
+-- Not Wide
+SELECT * FROM dbo.SalesOrderHeader2
+	WHERE OnlineOrderFlag = 0;
+SELECT * FROM dbo.SalesOrderHeader2
+	WHERE OnlineOrderFlag = 1;
+GO
+
+-- Wide
+SELECT * FROM dbo.SalesOrderHeader2
+	WHERE RevisionNumber = 9;
+-- Not Wide
+SELECT * FROM dbo.SalesOrderHeader2
+	WHERE RevisionNumber = 8;
+GO
+
+/**
+	08- Composite Key
+*/
 
 
+USE Index_DB;
+GO
+
+-- بررسی وجود جدول و حذف آن
+DROP TABLE IF EXISTS dbo.ClusteredTable;
+GO
+
+-- Heap ایجاد یک جدول از نوع
+CREATE TABLE dbo.ClusteredTable
+(
+	ID CHAR(700),
+	FirstName NCHAR(400),
+	LastName NCHAR(400),
+	BirthDay  NCHAR(200)
+);
+GO
+
+-- بر روی جدول Clustered ایجاد ایندکس
+CREATE CLUSTERED INDEX IX_Clustered ON dbo.ClusteredTable(ID);
+GO
+
+-- بر روی جدول NonClustered ایجاد ایندکس
+CREATE NONCLUSTERED INDEX IX_NonClustered ON dbo.ClusteredTable(BirthDay);
+GO
+
+--بررسی ایندکس های جدول
+SP_HELPINDEX ClusteredTable;
+GO
+
+-- بررسی تعداد صفحات تخصیص داده‌شده به جدول و ایندکس
+SELECT 
+	index_id, index_type_desc,
+	index_depth, index_level,
+	page_count, record_count
+FROM 
+	sys.dm_db_index_physical_stats
+		(DB_ID('Index_DB'),OBJECT_ID('ClusteredTable'),
+		NULL,NULL,'DETAILED');
+GO
+
+--درج تعدادی رکورد تستی
+INSERT INTO dbo.ClusteredTable
+	VALUES	(1, N'حمید', N'سعادت‌نژاد','1359'),
+			(5, N'پریسا', N'یزدانیان','1347'),
+			(3, N'علی', N'تقوی','1371'),
+			(4, N'مجید', N'پاکروان','1368'),
+			(2, N'فرهاد', N'رضایی','1358'),
+			(10, N'زهرا', N'غفاری','1362'),
+			(8, N'مهدی', N'پوینده','1367'),
+			(9, N'سمانه', N'اکبری','1370'),
+			(7, N'بیژن', N'تولایی','1358'),
+			(6, N'فاطمه', N'شریفی','1369');
+GO
+
+-- بررسی حجم جدول
+SP_SPACEUSED ClusteredTable;
+GO
+
+/*
+بررسی تعداد صفحات تخصیص داده شده به جدول و ایندکس
+در یک فضای دیگر ایجاد شده است NonClustered ایندکس
+*/
+SELECT 
+	index_id, index_type_desc,
+	index_depth, index_level,
+	page_count, record_count
+FROM 
+	sys.dm_db_index_physical_stats
+		(DB_ID('Index_DB'),OBJECT_ID('ClusteredTable')
+		,NULL,NULL,'DETAILED');
+GO
+
+SELECT
+	ID, FirstName, BirthDay
+FROM dbo.ClusteredTable
+	WHERE BirthDay = '1368';
+GO
+
+-- بر روی جدول Composite NonClustered ایجاد ایندکس جدید
+CREATE NONCLUSTERED INDEX IX_NonClustered_Composite ON dbo.ClusteredTable(BirthDay,FirstName);
+GO
+
+--بررسی ایندکس های جدول
+SP_HELPINDEX ClusteredTable;
+GO
+
+SELECT
+	ID, FirstName, BirthDay
+FROM dbo.ClusteredTable
+	WHERE BirthDay = '1368';
+GO
+
+SELECT
+	ID, FirstName, BirthDay
+FROM dbo.ClusteredTable WITH(INDEX(IX_NonClustered))
+	WHERE BirthDay = '1368';
+GO
+
+DROP INDEX IF EXISTS dbo.ClusteredTable.IX_NonClustered_Composite;
+GO
+
+-- بر روی جدول Composite NonClustered ایجاد ایندکس جدید
+CREATE NONCLUSTERED INDEX IX_NonClustered_Composite ON dbo.ClusteredTable(FirstName,BirthDay);
+GO
+
+--بررسی ایندکس های جدول
+SP_HELPINDEX ClusteredTable;
+GO
+
+SELECT
+	ID, FirstName, BirthDay
+FROM dbo.ClusteredTable
+	WHERE BirthDay = '1368';
+GO
+
+SELECT
+	ID, FirstName, BirthDay
+FROM dbo.ClusteredTable WITH(INDEX(IX_NonClustered))
+	WHERE BirthDay = '1368';
+GO
+
+/**
+	09- Cover Index
+*/
+
+USE AdventureWorks;
+GO
+
+/*
+Heap بر روی Cover Index ایجاد
+*/
+
+-- بررسی وجود جدول و حذف آن
+DROP TABLE IF EXISTS dbo.HeapTable;
+GO
+
+-- Heap ایجاد یک جدول از نوع
+SELECT * INTO dbo.HeapTable FROM Sales.SalesOrderDetail;
+GO
+
+-- Composit ایجاد
+CREATE NONCLUSTERED INDEX IX_NonClustered01 ON dbo.HeapTable(ProductID,OrderQty,SpecialOfferID);
+GO
+
+SET STATISTICS IO ON;
+GO
+
+-- Execution Plan بررسی
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable
+	WHERE ProductID = 789;
+GO
+
+-- CoverIndex ایجاد
+CREATE NONCLUSTERED INDEX IX_NonClustered02 ON dbo.HeapTable(ProductID,OrderQty,SpecialOfferID)
+INCLUDE(SalesOrderID,SalesOrderDetailID);
+GO
+
+-- Execution Plan بررسی
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable WITH(INDEX(IX_NonClustered01))
+	WHERE ProductID = 789;
+GO
+
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable
+	WHERE ProductID = 789;
+GO
+
+-- .با توجه به کوئری می‌توانستیم ایندکس را به‌صورت زیر هم ایجاد کنیم
+CREATE NONCLUSTERED INDEX IX_NonClustered03 ON dbo.HeapTable (ProductID)
+INCLUDE (SalesOrderID,SalesOrderDetailID,OrderQty,SpecialOfferID);
+GO
+
+--Execution Plan مقایسه
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable WITH(INDEX(IX_NonClustered01))
+	WHERE ProductID = 789;
+GO
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable WITH(INDEX(IX_NonClustered02))
+	WHERE ProductID = 789;
+GO
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.HeapTable
+	WHERE ProductID = 789;
+GO
+--------------------------------------------------------------------
+
+/*
+Clustered Table بر روی Cover Index ایجاد
+*/
+
+-- بررسی وجود جدول و حذف آن
+DROP TABLE IF EXISTS dbo.ClusteredTable;
+GO
+
+-- Heap ایجاد یک جدول از نوع
+SELECT * INTO ClusteredTable FROM Sales.SalesOrderDetail;
+GO
+
+-- ایجاد ایندکس روی جدول
+CREATE CLUSTERED INDEX IX_Clustered ON dbo.ClusteredTable(SalesOrderID);
+CREATE NONCLUSTERED INDEX IX_NonClustered01 ON dbo.ClusteredTable(ProductID,OrderQty,SpecialOfferID);
+GO
+
+-- Execution Plan بررسی
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM dbo.ClusteredTable
+	WHERE ProductID = 789;
+GO
+
+-- CoverIndex ایجاد
+CREATE NONCLUSTERED INDEX IX_NonClustered02 ON dbo.ClusteredTable(ProductID,OrderQty,SpecialOfferID)
+INCLUDE(SalesOrderDetailID);
+GO
+
+-- Execution Plan بررسی
+SELECT
+	SalesOrderID,
+	SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM ClusteredTable
+	WHERE ProductID = 789;
+GO
+
+-- .با توجه به کوئری می‌توانستیم ایندکس را به‌صورت زیر هم ایجاد کنیم
+CREATE NONCLUSTERED INDEX IX_NonClustered03 ON dbo.ClusteredTable (ProductID)
+INCLUDE (SalesOrderID,SalesOrderDetailID,OrderQty,SpecialOfferID);
+GO
+
+-- Execution Plan بررسی
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM ClusteredTable WITH(INDEX(IX_NonClustered01))
+	WHERE ProductID = 789;
+GO
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM ClusteredTable WITH(INDEX(IX_NonClustered02))
+	WHERE ProductID = 789;
+GO
+SELECT
+	SalesOrderID, SalesOrderDetailID,
+	ProductID, OrderQty, SpecialOfferID
+FROM ClusteredTable
+	WHERE ProductID = 789;
+GO
 
 
+/**
+	10- Filtered Index
+*/
 
+USE AdventureWorks;
+GO
+
+-- بررسی وجود جدول و حذف آن
+DROP TABLE IF EXISTS dbo.SalesOrderHeader;
+GO
+
+-- Heap ایجاد یک جدول از نوع
+SELECT * INTO SalesOrderHeader FROM Sales.SalesOrderHeader;
+GO
+
+--ایجاد یک کلاستر ایندکس بر روی جدول 
+CREATE UNIQUE CLUSTERED INDEX IX_Clustered ON dbo.SalesOrderHeader(SalesOrderID);
+GO
+
+-- Filtered ایجاد ایندکس
+CREATE INDEX IX_Filtered ON dbo.SalesOrderHeader(CustomerID,AccountNumber,OrderDate)
+    WHERE OrderDate >= '2012-01-01'
+	AND OrderDate <= '2012-12-31';
+GO
+
+-- NonClustered ایجاد ایندکس
+CREATE INDEX IX_NonFiltered ON dbo.SalesOrderHeader(CustomerID,AccountNumber,OrderDate);
+GO
+
+-- بررسی تعداد صفحات تخصیص داده‌شده به جدول و ایندکس
+SELECT 
+	index_id, index_type_desc, alloc_unit_type_desc,
+	index_depth, index_level, page_count, record_count
+FROM 
+	sys.dm_db_index_physical_stats
+		(DB_ID('AdventureWorks'),OBJECT_ID('SalesOrderHeader'),
+		NULL,NULL,'DETAILED');
+GO
+
+-- NonClustered مقايسه تعداد صفحات تخصیص‌یافته به‌ازای ایندکس‌های 
+SELECT 
+	index_id, index_type_desc, alloc_unit_type_desc,
+	index_depth, index_level, page_count, record_count
+FROM 
+	sys.dm_db_index_physical_stats
+		(DB_ID('AdventureWorks'),OBJECT_ID('SalesOrderHeader'),
+		NULL,NULL,'DETAILED')
+	WHERE index_type_desc <> 'CLUSTERED INDEX'
+	AND index_level = 0;
+GO
+
+SET STATISTICS IO ON
+GO
+
+-- Execution Plan بررسی
+-- '2012-01-01' ---> '2012-12-31'
+SELECT
+	CustomerID, AccountNumber, OrderDate
+FROM dbo.SalesOrderHeader  
+	WHERE OrderDate BETWEEN '2012-01-01' AND '2012-03-01';
+GO
+
+SELECT
+	CustomerID, AccountNumber, OrderDate
+FROM dbo.SalesOrderHeader  
+	WHERE OrderDate BETWEEN '2012-01-01' AND '2013-01-01';
+GO
+
+-- مقایسه دو کوئری مشابه با ایندکس‌های متفاوت
+SELECT
+	CustomerID, AccountNumber, OrderDate
+FROM dbo.SalesOrderHeader  
+	WHERE OrderDate BETWEEN '2012-01-01' AND '2012-03-01';
+GO
+SELECT
+	CustomerID, AccountNumber, OrderDate
+FROM dbo.SalesOrderHeader WITH(INDEX(IX_NonFiltered))
+	WHERE OrderDate BETWEEN '2012-01-01' AND '2012-03-01';
+GO
+--------------------------------------------------------------------
+/*
+تمرین کلاسی
+:ساختار جدول به‌صورت زیر است
+
+CREATE TABLE dbo.Person
+(
+	ID INT IDENTITY PRIMARY KEY,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	NationalCode NVARCHAR(20)
+);
+GO
+
+به‌صورت یکتا باشد اما قابلیت NationalCode می‌خواهیم مقادیر موجود در فیلد
+.به‌ازای کاربرانی که فاقد این فیلد هستند وجود داشته باشد NULL یا Blank درج مقدار
+?راه‌کار شما برای انجام این کار چیست
+
+*/
+
+USE NikamoozDB;
+GO
+
+DROP TABLE IF EXISTS dbo.Person;
+GO
+
+CREATE TABLE dbo.Person
+(
+	ID INT IDENTITY PRIMARY KEY,
+	FirstName NVARCHAR(50),
+	LastName NVARCHAR(50),
+	NationalCode NVARCHAR(20)
+);
+GO
+
+SP_HELPINDEX Person;
+GO
+
+INSERT INTO dbo.Person(FirstName, LastName, NationalCode)
+	VALUES	(N'سعید', N'شجاعی', '111-111-111-111'),
+		    (N'فريد', N'تقوی', NULL),
+		    (N'سحر', N'زمانی', '222-222-222-222'),
+		    (N'علي', N'پوینده', '333-333-333-333'),
+		    (N'عليرضا', N'نصيري', NULL),
+		    (N'فاطمه', N'اكبر مقدم', '444-444-444-444'),
+		    (N'بهروز', N'پویان', ''),
+		    (N'صادق', N'نوري', ''),
+		    (N'مجید', N'سعادت', NULL);
+GO
+
+SELECT * FROM dbo.Person;
+GO
+
+-- .در صورتي‌كه بخواهیم كد ملي داراي مقدار يكتا باشد
+--CREATE UNIQUE NONCLUSTERED INDEX IX1 ON dbo.Person(NationalCode);
+--GO
+
+CREATE UNIQUE NONCLUSTERED INDEX IX1 ON dbo.Person(NationalCode) 
+	WHERE (NationalCode <> '' AND  NationalCode IS NOT NULL);
+GO
+
+SP_HELPINDEX Person;
+GO
+
+INSERT INTO dbo.Person(FirstName, LastName, NationalCode)
+    VALUES	(N'امین', N'امینی', NULL);
+GO
+
+INSERT INTO dbo.Person(FirstName, LastName, NationalCode)
+    VALUES (N'علي', N'سعادتی', '');
+GO
+
+INSERT INTO dbo.Person(FirstName, LastName, NationalCode)
+    VALUES (N'محمد', N'کشاورز', '');
+GO
+
+INSERT INTO dbo.Person(FirstName, LastName, NationalCode)
+    VALUES (N'فرناز', N'فلاحتی' , '222-222-222-222');
+GO
 
 
 
