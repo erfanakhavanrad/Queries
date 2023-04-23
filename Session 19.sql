@@ -1082,3 +1082,174 @@ GO
 RESTORE DATABASE New_Test_DB2
 	WITH RECOVERY;
 GO
+
+--11- Instant File Initialziation
+/*
+First Step
+	Instant File Initialziation setting before SQL Server 2016
+		
+		1- Run: gpedot.msc OR secpol.msc
+		Windows Settings\Security Settings\Local Policy\User Right Assignment
+
+		OR
+
+		2- Secpol.msc
+		Security Setting\Local Policy\User Right Assignment
+
+	Adding the corresponding user which SQL Server Runs using it to the following policy:
+	Perform Volume Maintenance Task
+
+Second Step
+	Run the following command in CMD:
+	gpupdate /force
+
+Third Step
+	Restart SQL Server service
+*/
+
+-- First we remove the privilages of the user which SQL Server starts with from 
+-- (Perform Volume Maintenance Task) PVMT
+
+USE master;
+GO
+
+IF DB_ID('AdventureWorks') > 0
+	BEGIN
+		ALTER DATABASE AdventureWorks
+		SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+		DROP DATABASE AdventureWorks
+	END
+GO
+
+-- Pay attention to the backup file directory
+RESTORE FILELISTONLY FROM DISK = 'E:\SQL Server\Sample DB\2016\AdventureWorks\2016.bak'
+GO
+
+/*
+	Pay attention to the backup file directory and Restore operation.
+	Consider the Restore operation time too.
+*/
+RESTORE DATABASE AdventureWorks
+FROM DISK = 'E:\SQL Server\Sample DB\2016\AdventureWorks\2016.bak'
+	WITH
+		MOVE 'AdventureWorks_Data' TO 'C:\TempDB\AdventureWorks_Data.mdf',
+		MOVE 'AdventureWorks_Log' TO 'C:\TempDB\AdventureWorks_Data.ldf',
+		STATS = 1
+GO
+
+
+-- next, we give PVMT The mentioned user access.
+USE MASTER;
+GO
+
+IF DB_ID('AdventureWorks') > 0
+	BEGIN
+		ALTER DATABASE AdventureWorks
+		SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+		DROP DATABASE AdventureWorks
+	END
+GO
+
+
+/*
+	Pay attention to the backup file directory and Restore operation.
+	Consider the Restore operation time too.
+*/
+RESTORE DATABASE AdventureWorks
+FROM DISK = 'E:\SQL Server\Sample DB\2016\AdventureWorks\2016.bak'
+	WITH
+		MOVE 'AdventureWorks_Data' TO 'C:\TempDB\AdventureWorks_Data.mdf',
+		MOVE 'AdventureWorks_Log' TO 'C:\TempDB\AdventureWorks_Data.ldf',
+		STATS = 1
+GO
+
+--12 Compression
+
+USE MASTER; 
+GO
+
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithoutCompress.bak';
+Go
+
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+	WITH COMPRESSION;
+Go
+
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+	WITH COMPRESSION;
+Go
+----------------------------------------------------------------
+
+-- Creating a Media without compress
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_NoCompress.bak'
+Go
+
+-- Pay attention to IsCompressed field value
+RESTORE LABELONLY FROM DISK = 'C:\TempDB\Northwind_NoCompress.bak'
+GO
+
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+	WITH COMPRESSION;
+Go
+
+-- Creating a media with compress
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+	WITH COMPRESSION;
+Go
+
+-- Pay attention to IsCompressed field value
+RESTORE LABELONLY FROM DISK = 'C:\TempDB\Northwind_NoCompress.bak'
+GO
+
+BACKUP DATABASE NorthWind
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+	WITH COMPRESSION;
+Go
+
+BACKUP DATABASE msdb
+TO DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+Go
+
+RESTORE HEADERONLY FROM DISK = 'C:\TempDB\Northwind_WithCompress.bak'
+Go
+----------------------------------------------------------------
+
+SP_CONFIGURE;
+GO
+
+SP_CONFIGURE 'show advanced options',1;
+GO
+
+SP_CONFIGURE;
+GO
+
+RECONFIGURE;
+GO
+
+SP_CONFIGURE;
+GO
+
+SP_CONFIGURE 'backup compression default',1;
+GO
+
+RECONFIGURE;
+GO
+
+SP_CONFIGURE;
+GO
+
+
+SP_CONFIGURE 'backup compression default',0;
+GO
+
+RECONFIGURE;
+GO
+
+SP_CONFIGURE;
+GO
